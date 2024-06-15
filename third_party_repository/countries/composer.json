@@ -1,0 +1,5 @@
+{
+    "require": {
+        "rinvex/countries": "^9.0"
+    }
+}

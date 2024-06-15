@@ -1,0 +1,178 @@
+version: '3'
+
+volumes:
+  files:
+    driver: local
+  mysql:
+    driver: local
+  redis:
+    driver: local
+  nextcloudapp:
+    driver: local
+  # db:
+  #   driver: local
+  rabbitmq:
+    driver: local
+  db_data:
+
+services:
+  django:
+    build:
+      context: .
+      dockerfile: JWTBasedAuthentication/Dockerfile_JWTBasedAuthentication
+    container_name: "JWTBasedAuthentication"
+    depends_on:
+      - rabbitmq
+      - postgres
+      - redis
+    expose:
+      - "8000"
+    ports:
+      - "8000:8000"
+    networks:
+      - JWTBasedAuthentication_network
+    restart: always
+
+  nextcloudapp:
+    image: nextcloud
+    restart: always
+    container_name: "nextcloud"
+    depends_on:
+      - postgres
+      - redis
+    expose:
+      - "3000"
+    ports:
+      - "3000:80"
+    links:
+      - postgres
+    volumes:
+      - nextcloudapp:/var/www/html
+    networks:
+      - JWTBasedAuthentication_network
+
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile_nginx
+      args:
+        - NGINX_CONF_PATH=./nginx/nginx.conf
+        - NGINX_DEFAULT_CONF_PATH=./nginx/default.conf
+        - SSL_CERT_PATH=./nginx/ssl/JWTBasedAuthentication.pem
+        - SSL_KEY_PATH=./nginx/ssl/JWTBasedAuthentication.key
+        - SSL_BUNDLE_PATH=./nginx/ssl/bundle.pem
+
+    container_name: "nginx"
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - django
+      - nextcloudapp
+      - postgres
+    volumes:
+      - ./nginx:/etc/nginx
+      - /var/log/nginx_container:/var/log/nginx
+    networks:
+      - JWTBasedAuthentication_network
+
+  # db:
+  #   image: mariadb
+  #   restart: always
+  #   container_name: "mariadb"
+  #   networks:
+  #     - JWTBasedAuthentication_network
+  #   volumes:
+  #     - db:/var/lib/mysql
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: admin
+  #     MYSQL_PASSWORD: admin
+  #     MYSQL_DATABASE: nextcloud
+  #     MYSQL_USER: nextcloud
+
+
+
+  postgres:
+    image: postgres:14-alpine
+    restart: always
+    container_name: "postgres"
+    ports:
+      - 5432:5432
+    volumes:
+      - ~/apps/postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=S3cret
+      - POSTGRES_USER=citizix_user
+      - POSTGRES_DB=citizix_db
+    networks:
+      - JWTBasedAuthentication_network
+
+#  db:
+#    image: postgres:latest
+#    restart: always
+#    container_name: "postgres"
+#    environment:
+#      POSTGRES_DB: JWTBasedAuthentication
+#      POSTGRES_USER: admin
+#      POSTGRES_PASSWORD: admin
+#
+#    ports:
+#      - "5432:5432"
+#    networks:
+#      - JWTBasedAuthentication_network
+#    volumes:
+#      - db_data:/var/lib/postgresql/data
+
+
+#  db:
+#    image: postgres:latest
+#    restart: always
+#    container_name: "postgres"
+#    environment:
+#      - POSTGRES_DB=JWTBasedAuthentication
+#      - POSTGRES_USER=admin
+#      - POSTGRES_PASSWORD=admin
+#    ports:
+#      - "5432:5432"
+#    volumes:
+#      - db_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:6
+    container_name: "redis"
+    restart: always
+    command: ["--databases", "1"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - redis:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+
+  rabbitmq:
+    image: rabbitmq:3.13.1
+    container_name: "rabbitmq"
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      RABBITMQ_DEFAULT_USER: "guest"
+      RABBITMQ_DEFAULT_PASS: "guest"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - JWTBasedAuthentication_network
+
+networks:
+  JWTBasedAuthentication_network:
+
+
+#    healthcheck:
+#      test: [ "CMD", "rabbitmqctl", "status" ]
+#      interval: 10s
+#      retries: 5
+#      timeout: 5s

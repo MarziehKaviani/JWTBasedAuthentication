@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+message logevent {
+  string name = 1;
+  string timestamp = 2;
+  string source = 3;
+  string serializer_format = 4;
+  string message = 5;
+  string level = 6;
+}

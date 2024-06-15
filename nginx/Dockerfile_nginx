@@ -1,0 +1,31 @@
+FROM nginx:alpine
+
+ARG NGINX_CONF_PATH
+ARG NGINX_DEFAULT_CONF_PATH
+ARG SSL_CERT_PATH
+ARG SSL_KEY_PATH
+ARG SSL_BUNDLE_PATH
+
+RUN rm ./etc/nginx/conf.d/default.conf
+RUN #rm /etc/nginx/conf.d/default.conf
+
+ADD $NGINX_DEFAULT_CONF_PATH /etc/nginx/conf.d/default.conf
+COPY $NGINX_DEFAULT_CONF_PATH /etc/nginx/conf.d/default.conf
+
+RUN rm ./etc/nginx/nginx.conf
+RUN #rm /etc/nginx/nginx.conf
+
+ADD $NGINX_CONF_PATH /etc/nginx/nginx.conf
+COPY $NGINX_CONF_PATH /etc/nginx/nginx.conf
+
+RUN mkdir -p /etc/nginx/ssl
+
+COPY $SSL_CERT_PATH /etc/nginx/ssl/JWTBasedAuthentication.pem
+COPY $SSL_KEY_PATH /etc/nginx/ssl/JWTBasedAuthentication.key
+COPY $SSL_BUNDLE_PATH /etc/nginx/ssl/bundle.pem
+
+EXPOSE 80
+EXPOSE 443
+
+CMD ["nginx", "-g", "daemon off;"]
+

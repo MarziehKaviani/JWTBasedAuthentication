@@ -1,0 +1,24 @@
+FROM python:3.11.5
+
+ENV DockerHOME=/home/app/WebApp
+
+RUN mkdir -p $DockerHOME
+
+WORKDIR $DockerHOME
+
+COPY requirements.txt .
+
+RUN python3 -m pip install -r requirements.txt
+
+COPY . .
+
+EXPOSE 8000
+
+# Install 'wait-for-it.sh' script
+ADD https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh /usr/local/bin/wait-for-it.sh
+RUN chmod +x /usr/local/bin/wait-for-it.sh
+
+#RUN python manage.py migrate
+#RUN python manage.py migrate
+#CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["sh", "-c", "wait-for-it.sh db:5432 -- python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]

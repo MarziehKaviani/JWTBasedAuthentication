@@ -1,0 +1,10 @@
+namespace Events;
+
+table logevent {
+  name: string;
+  timestamp: string;
+  source: string;
+  serializer_format: string;
+  level: string;
+  message: string;
+}
